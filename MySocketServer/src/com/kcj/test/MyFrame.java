@@ -242,51 +242,76 @@ public class MyFrame extends JFrame {
 		}
 		@Override
 		public void run() {
+			InputStream inputStream = null;
+			InputStreamReader inputStreamReader = null;
+			BufferedReader bufferedReader = null;
 			try {
 				final String result;
 				// 获取数据流【字节】
-				InputStream inputStream = socket.getInputStream();
+				 inputStream = socket.getInputStream();
 				
 				// 转换字符流
-				InputStreamReader inputStreamReader = new InputStreamReader(
+				 inputStreamReader = new InputStreamReader(
 						inputStream, "utf-8");
 
 				// 套个连接流
-				BufferedReader bufferedReader = new BufferedReader(
+				 bufferedReader = new BufferedReader(
 						inputStreamReader);
 
 				StringBuffer stringBuffer = new StringBuffer();
 				String tempinfo = "";
 				while ((tempinfo = bufferedReader.readLine()) != null) {
 					stringBuffer.append(tempinfo);
+					if(tempinfo.contains("/"))break;//接收到"/"结束循环
 				}
-				// 返回的结果
 				result = stringBuffer.toString();
-				if (socket != null && !socket.isClosed()) {
-					socket.close();
-				}
-				bufferedReader.close();
-				inputStreamReader.close();
-				inputStream.close();
-			
-				String table=result.substring(0,1);
+				System.out.println(result);
+				String table=result.substring(0,1);//截取一个字符,存入不同数据库
+				String content=result.substring(1, result.length()-1);
 				if("a".equals(table)){
-					DBUtil.getInstances().insertAMessage(result.substring(1,result.length()));
+					DBUtil.getInstances().insertAMessage(content);
 				}else if("b".equals(table)){
-					DBUtil.getInstances().insertBMessage(result.substring(1,result.length()));
+					DBUtil.getInstances().insertBMessage(content);
 				}else if ("c".equals(table)) {
-					DBUtil.getInstances().insertCMessage(result.substring(1,result.length()));
+					DBUtil.getInstances().insertCMessage(content);
 				}
 				SwingUtilities.invokeLater(new Runnable() {
 					public void run() {
 						jTextArea.setText(jTextArea.getText()+result+"\r\n");
 					}
 				});
+				response(result+"\r\n");//数据原样返回result包含"/"
 			} catch (IOException e) {
 				e.printStackTrace();
-			}	
+			}finally{
+				try {
+					bufferedReader.close();
+					inputStreamReader.close();
+					inputStream.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 		}
-		
+		private  void response(String response)
+		{ 
+			try {
+				//发送数据
+				OutputStream outputStream=socket.getOutputStream();
+				//转换流为字符流
+				OutputStreamWriter outputStreamWriter=new OutputStreamWriter(outputStream, "utf-8");
+				//套一个缓存流
+				BufferedWriter bufferedWriter=new BufferedWriter(outputStreamWriter);
+				bufferedWriter.write(response);
+				bufferedWriter.flush();
+				bufferedWriter.close();
+				outputStreamWriter.close();
+				outputStream.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 }
